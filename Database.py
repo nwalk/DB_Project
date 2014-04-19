@@ -9,7 +9,8 @@ import psycopg2
 class DBConnect():
     """Creates a database connection and a cursor"""
     def __init__(self):
-        self.conn = psycopg2.connect("dbname=DbProject user=postgres host=localhost password=postgres")
+        self.conn = psycopg2.connect("""dbname=DbProject user=postgres
+                                        host=localhost password=postgres""")
         self.cur = self.conn.cursor()
         self.conn.commit()
         print("Connected")
@@ -18,10 +19,29 @@ class DBOperations(DBConnect):
     """This class performs all the operations
        needed to work with the database"""
 
+    def addAppliance(self, a, b, m, p):
+        self.cur.execute("""INSERT INTO appliance (app_type, brand, model, price)
+                            VALUES (%s, %s, %s, %s);""", (a, b, m, p,))
+        self.conn.commit()
+        
+
+    def addCustomer(self, n, p, a):
+        self.cur.execute("""INSERT INTO customer (name, phone, address)
+                            VALUES (%s, %s, %s);""", (n, p, a,))
+        self.conn.commit()
+
+    def saleTicket(self, n, p):
+        self.cur.execute("""SELECT id FROM customer
+                            WHERE name = (%s)
+                            OR phone = (%s);""", (n, p,))
+        
+        
+        
+
     def createTable(self):
         """Creates tables appliance, customer, sales, and sold_appl"""
         self.cur.execute("""CREATE TABLE appliance(id serial,
-                                                   type varchar,
+                                                   app_type varchar,
                                                    brand varchar,
                                                    model varchar,
                                                    price numeric
@@ -46,6 +66,7 @@ class DBOperations(DBConnect):
                          )
         self.conn.commit()
         self.cur.execute("""CREATE TABLE sold_appl(id serial,
+                                                   sale_id integer,
                                                    cust_id integer,
                                                    appl_id integer,
                                                    date timestamp
@@ -62,7 +83,8 @@ class DBOperations(DBConnect):
         self.cur.execute("""DROP TABLE sold_appl;""")
         self.conn.commit()
         print("Tables Dropped")
-                         
+
+
                         
 
 
