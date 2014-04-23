@@ -81,6 +81,13 @@ class DBOperations(DBConnect):
         
     def createTable(self):
         """Creates tables appliance, customer, sales, and sold_appl"""
+        #self.cur.execute("""CREATE EXTENSION pgrouting;""")
+        self.cur.execute("""ALTER TABLE stephens_rd DROP COLUMN source;""")
+        self.cur.execute("""ALTER TABLE public.stephens_rd add column source integer;""")
+        self.cur.execute("""ALTER TABLE public.stephens_rd add column target integer;""")
+        self.cur.execute("""SELECT pgr_createTopology('public.stephens_rd', 0.0001, 'geom', 'id');""")
+
+
         self.cur.execute("""CREATE TABLE appliance(id serial,
                                                    app_type varchar,
                                                    brand varchar,
