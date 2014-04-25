@@ -38,6 +38,11 @@ class DBOperations(DBConnect):
         x = self.cur.fetchall()
         for a,b,c,d in x:
             print a,b,c,d
+        cust_id = raw_input("Please enter customer ID:")
+        self.cur.execute("""SELECT * FROM sold_appl NATURAL JOIN appliance
+                            WHERE cust_id = (%s);""", (cust_id,))
+        purchase = self.cur.fetchall()
+        print purchase
         
     def searchPhone(self, p):
         self.cur.execute("""SELECT * FROM customer
@@ -70,6 +75,21 @@ class DBOperations(DBConnect):
         self.conn.commit()
         self.cur.execute("""SELECT MAX(id) FROM sales;""")
         ID = self.cur.fetchone()
+        self.cur.execute("""INSERT INTO money(sale_id, cust_id)
+                            VALUES(%s, %s);""",(x, ID,))
+        for app_id in app:
+            self.cur.execute("""SELECT app_type, price
+                                FROM appliance
+                                WHERE id = (%s);""",(app_id))
+            y = self.cur.fetchone()
+            app_type = y[0]
+            price = y[1]
+            ID2 = ID[0]
+            self.cur.execute("""UPDATE money
+                                SET {} = {}
+                                WHERE sale_id = {};""".format(app_type, price, ID2))
+            self.conn.commit()
+
         for app_id in app:
                 self.cur.execute("""INSERT INTO sold_appl(sale_id,
                                                           cust_id,
@@ -78,6 +98,7 @@ class DBOperations(DBConnect):
                                     VALUES (%s, %s, %s, Now());""",
                                 (ID, x, app_id,))
                 self.conn.commit()
+
         
     def createTable(self):
         """Creates tables appliance, customer, sales, and sold_appl"""
@@ -119,6 +140,25 @@ class DBOperations(DBConnect):
                                                    appl_id integer,
                                                    date timestamp
                                                    );"""
+                         )
+        self.conn.commit()
+        self.cur.execute("""CREATE TABLE money(id serial,
+                                               sale_id integer,
+                                               cust_id integer,
+                                               washer numeric,
+                                               dryer numeric,
+                                               refrigerator numeric,
+                                               freezor numeric,
+                                               dishwasher numeric,
+                                               range numeric,
+                                               oven numeric,
+                                               repair numeric,
+                                               misc numeric,
+                                               expenses numeric,
+                                               tax numeric,
+                                               total numeric,
+                                               date timestamp
+                                               );"""
                          )
         self.conn.commit()
         print("Tables Created")
