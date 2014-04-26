@@ -56,7 +56,6 @@ class DBOperations(DBConnect):
                             WHERE name = (%s)
                             AND phone = (%s);""", (n, p,))
         x = self.cur.fetchone()
-        print x
         if x == None:
             self.cur.execute("""INSERT INTO customer (name, phone, address)
                             VALUES (%s, %s, %s);""", (n, p, a,))
@@ -71,12 +70,26 @@ class DBOperations(DBConnect):
                             AND phone = (%s);""", (n, p,))
         x = self.cur.fetchone()
         self.cur.execute("""INSERT INTO sales (cust_id, date)
-                            VALUES (%s, Now());""", (x,))
+                            VALUES (%s, current_date);""", (x,))
         self.conn.commit()
         self.cur.execute("""SELECT MAX(id) FROM sales;""")
         ID = self.cur.fetchone()
-        self.cur.execute("""INSERT INTO money(sale_id, cust_id)
-                            VALUES(%s, %s);""",(x, ID,))
+##        self.cur.execute("""INSERT INTO money(washer,
+##                                              dryer,
+##                                              refrigerator,
+##                                              freezor,
+##                                              dishwasher,
+##                                              range,
+##                                              oven,
+##                                              repair,
+##                                              misc,
+##                                              expenses,
+##                                              tax,
+##                                              total,
+##                                              date)
+##                            VALUES(0,0,0,0,0,0,0,0,0,0,0,0,current_date
+##                                   );""")
+        self.conn.commit()
         for app_id in app:
             self.cur.execute("""SELECT app_type, price
                                 FROM appliance
@@ -85,42 +98,56 @@ class DBOperations(DBConnect):
             app_type = y[0]
             price = y[1]
             ID2 = ID[0]
-            self.cur.execute("""UPDATE money
-                                SET {} = {}
-                                WHERE sale_id = {};""".format(app_type, price, ID2))
-            self.conn.commit()
-
+            self.cur.execute("""SELECT {} FROM money
+                                WHERE date = current_date;""".format(app_type))
+            instance = self.cur.fetchone()
+            number = instance[0]
+            print number
+            print app_type
+            if number == 0.0:
+                self.cur.execute("""UPDATE money
+                                    SET (%s) = (%s)
+                                    WHERE date = current_date;""",(app_type, price,))
+                self.conn.commit()
+            else:
+                self.cur.execute("""UPDATE money
+                                    SET (%s) = (%s) + (%s)
+                                    WHERE sale_id = (%s);""", (app_type,
+                                                                  price,
+                                                                  number,
+                                                                  ID2,))
+                self.conn.commit()
         for app_id in app:
                 self.cur.execute("""INSERT INTO sold_appl(sale_id,
                                                           cust_id,
                                                           appl_id,
                                                           date)
-                                    VALUES (%s, %s, %s, Now());""",
+                                    VALUES (%s, %s, %s, current_date);""",
                                 (ID, x, app_id,))
                 self.conn.commit()
 
         
     def createTable(self):
         """Creates tables appliance, customer, sales, and sold_appl"""
-        #self.cur.execute("""CREATE EXTENSION pgrouting;""")
-        self.cur.execute("""ALTER TABLE stephens_rd DROP COLUMN source;""")
-        self.cur.execute("""ALTER TABLE public.stephens_rd add column source integer;""")
-        self.cur.execute("""ALTER TABLE public.stephens_rd add column target integer;""")
-        self.cur.execute("""SELECT pgr_createTopology('public.stephens_rd', 0.0001, 'geom', 'id');""")
+##        self.cur.execute("""CREATE EXTENSION pgrouting;""")
+##        self.cur.execute("""ALTER TABLE stephens_rd DROP COLUMN source;""")
+##        self.cur.execute("""ALTER TABLE public.stephens_rd add column source integer;""")
+##        self.cur.execute("""ALTER TABLE public.stephens_rd add column target integer;""")
+##        self.cur.execute("""SELECT pgr_createTopology('public.stephens_rd', 0.0001, 'geom', 'id');""")
 
 
         self.cur.execute("""CREATE TABLE appliance(id serial,
                                                    app_type varchar,
                                                    brand varchar,
                                                    model varchar,
-                                                   price numeric
+                                                   price float
                                                    );"""
                          )
         self.conn.commit()
         
         self.cur.execute("""CREATE TABLE customer(id serial,
                                                   name varchar(20),
-                                                  phone varchar,
+                                                  phone integer,
                                                   address varchar
                                                   );"""
                          )
@@ -128,9 +155,9 @@ class DBOperations(DBConnect):
 
         self.cur.execute("""CREATE TABLE sales(id serial,
                                                cust_id integer,
-                                               date timestamp,
-                                               delivery_date timestamp,
-                                               war_exp timestamp                                          
+                                               date date,
+                                               delivery_date date,
+                                               war_exp date                                          
                                                );"""
                          )
         self.conn.commit()
@@ -138,26 +165,26 @@ class DBOperations(DBConnect):
                                                    sale_id integer,
                                                    cust_id integer,
                                                    appl_id integer,
-                                                   date timestamp
+                                                   date date
                                                    );"""
                          )
         self.conn.commit()
         self.cur.execute("""CREATE TABLE money(id serial,
                                                sale_id integer,
                                                cust_id integer,
-                                               washer numeric,
-                                               dryer numeric,
-                                               refrigerator numeric,
-                                               freezor numeric,
-                                               dishwasher numeric,
-                                               range numeric,
-                                               oven numeric,
-                                               repair numeric,
-                                               misc numeric,
-                                               expenses numeric,
-                                               tax numeric,
-                                               total numeric,
-                                               date timestamp
+                                               washer float,
+                                               dryer float,
+                                               refrigerator float,
+                                               freezor float,
+                                               dishwasher float,
+                                               range float,
+                                               oven float,
+                                               repair float,
+                                               misc float,
+                                               expenses float,
+                                               tax float,
+                                               total float,
+                                               date date
                                                );"""
                          )
         self.conn.commit()
@@ -169,8 +196,12 @@ class DBOperations(DBConnect):
         self.cur.execute("""DROP TABLE customer;""")
         self.cur.execute("""DROP TABLE sales;""")
         self.cur.execute("""DROP TABLE sold_appl;""")
+        self.cur.execute("""DROP TABLE money;""")
         self.conn.commit()
         print("Tables Dropped")
+
+class ProgrammingError(Exception):
+    pass
 
 
                         
