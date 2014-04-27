@@ -1,5 +1,5 @@
 from database import DBOperations
-
+import re
 
 class Menu():
     """Displays a menu and respond to choices when run."""
@@ -9,8 +9,8 @@ class Menu():
                 1: self.create,
                 2: self.drop,
                 3: self.add_a,
-                4: self.add_c,
-                5: self.sold
+                4: self.sale,
+                5: self.search
 ##                6: self.,
 ##                7: self.,
 ##                8: self.quit,
@@ -24,7 +24,8 @@ Used Appliance:
 1 - Add Table
 2 - Drop Tables
 3 - Add Appliance
-4 - Add Customer
+4 - Sale
+5 - Search
 """)
 
     def run(self):
@@ -51,17 +52,32 @@ Used Appliance:
         p = float(raw_input("Price:"))
         self.DB.addAppliance(a, b, m, p)
 
-    def add_c(self):
+    def sale(self):
         n = raw_input("Name:")
         p = raw_input("Phone:")
         a = raw_input("Address:")
-        self.DB.findCustomer(n, p)
-        self.DB.addCustomer(n, p, a)
-        self.DB.saleTicket(n, p)
-
-    def sold(self):
+        app = raw_input("Appliance ID(s):")
+        app = re.findall(r"[-+]?\d*\.\d+|\d+", app)
+        print app
+        self.DB.saleTicket1(n, p, a, app)
         
-        self.DB.saleTicket()
+    def search(self):
+        print("""
+SEARCH MENU
+1 - Search By Name
+2 - Search By Phone
+b - Back
+          """)
+        x = raw_input("Make a selection:")
+        if x == '1':
+            n = raw_input("Name:")
+            self.DB.searchName(n)
+        elif x == '2':
+            p = raw_input("Phone Number:")
+            self.DB.searchPhone(p)
+        elif x == 'b':
+            Menu().run()
+            
         
         
         
