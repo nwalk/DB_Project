@@ -19,9 +19,21 @@ class DBOperations(DBConnect):
     """This class performs all the operations
        needed to work with the database"""
 
-    def addAppliance(self, a, b, m, p):
-        self.cur.execute("""INSERT INTO appliance (app_type, brand, model, price)
-                            VALUES (%s, %s, %s, %s);""", (a, b, m, p,))
+    def viewAvailable(self):
+        """Selects all available appliances from appliance table"""
+        self.cur.execute("""SELECT * FROM appliance
+                            WHERE status = 'available';""")
+        x = self.cur.fetchall()
+        print("Type |Brand |Style |Price")
+        for a,b,c,d,e,f,g in x:
+            print c,d,e,f
+
+
+    def addAppliance(self, a, b, s, p, r):
+        self.cur.execute("""INSERT INTO appliance (status, app_type, brand,
+                                                   style, price, repairs)
+                            VALUES ('available', %s, %s, %s, %s, %s);""",
+                            (a, b, s, p, r,))
         self.conn.commit()
         self.cur.execute("""SELECT MAX(id) FROM appliance;""")
         x = self.cur.fetchone()
@@ -39,10 +51,14 @@ class DBOperations(DBConnect):
         for a,b,c,d in x:
             print a,b,c,d
         cust_id = raw_input("Please enter customer ID:")
-        self.cur.execute("""SELECT * FROM sold_appl NATURAL JOIN appliance
+        self.cur.execute("""SELECT date, app_type, brand, style, price
+                            FROM sold_appl NATURAL JOIN appliance
                             WHERE cust_id = (%s);""", (cust_id,))
-        purchase = self.cur.fetchall()
-        print purchase
+        List = self.cur.fetchall()
+        for tuple in List:
+            print ("\n")
+            for i in tuple:
+                print i             
         
     def searchPhone(self, p):
         self.cur.execute("""SELECT * FROM customer
@@ -129,6 +145,9 @@ class DBOperations(DBConnect):
                                     VALUES (%s, %s, %s, current_date);""",
                                 (ID, x, app_id,))
                 self.conn.commit()
+                self.cur.execute("""UPDATE appliance SET status = 'sold'
+                                    WHERE id = %s;""", (app_id,))
+                self.conn.commit()
         self.cur.execute("""SELECT washer,
                                    dryer,
                                    refrigerator,
@@ -150,7 +169,22 @@ class DBOperations(DBConnect):
         self.cur.execute("""UPDATE money SET total = %s
                             WHERE date = current_date;""", (grand_total,))
         self.conn.commit()
+        
 
+    def serviceCalls(self, app_id):
+        self.cur.execute("""SELECT sale_id FROM sold_appl NATURAL JOIN appliance
+                            WHERE appl_id = (%s);""", (app_id,))
+        sale_id = self.cur.fetchone()
+        service = raw_input("Repaires made:")
+        self.cur.execute("""INSERT INTO service_calls(sale_id, appl_id, repair, date)
+                            VALUES(%s, %s, %s, current_date);""", (sale_id, app_id, service,))
+        self.conn.commit()
+
+    def viewService(self):
+        self.cur.execute("""SELECT * FROM service_calls;""")
+        results = self.cur.fetchall()
+        for a,b,c,d,e in results:
+            print b,c,d,e
         
     def createTable(self):
         """Creates tables appliance, customer, sales, money, and sold_appl"""
@@ -162,10 +196,12 @@ class DBOperations(DBConnect):
 
 
         self.cur.execute("""CREATE TABLE appliance(id serial,
+                                                   status varchar,
                                                    app_type varchar,
                                                    brand varchar,
-                                                   model varchar,
-                                                   price float
+                                                   style varchar,
+                                                   price float,
+                                                   repairs varchar
                                                    );"""
                          )
         self.conn.commit()
@@ -182,7 +218,7 @@ class DBOperations(DBConnect):
                                                cust_id integer,
                                                date date,
                                                delivery_date date,
-                                               war_exp date                                          
+                                               war_exp date
                                                );"""
                          )
         self.conn.commit()
@@ -194,6 +230,16 @@ class DBOperations(DBConnect):
                                                    );"""
                          )
         self.conn.commit()
+
+        self.cur.execute("""CREATE TABLE service_calls(id serial,
+                                                       sale_id integer,
+                                                       appl_id integer,
+                                                       repair varchar,
+                                                       date date
+                                                       );"""
+                         )
+        self.conn.commit()
+        
         self.cur.execute("""CREATE TABLE money(washer float,
                                                dryer float,
                                                refrigerator float,
