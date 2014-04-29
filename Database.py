@@ -187,6 +187,7 @@ class DBOperations(DBConnect):
             print b,c,d,e
 
     def viewRoute(self):
+        """http://anitagraser.com/2013/07/06/pgrouting-2-0-for-windows-quick-guide/"""
         self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
                              FROM pgr_dijkstra(
                              'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
