@@ -185,14 +185,33 @@ class DBOperations(DBConnect):
         results = self.cur.fetchall()
         for a,b,c,d,e in results:
             print b,c,d,e
+
+    def viewRoute(self):
+        self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
+                             FROM pgr_dijkstra(
+                             'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
+                             1, 500, false, false
+                             ) as di
+                             JOIN public.scrouting pt
+                             ON di.id2 = pt.id""")
+
+
         
     def createTable(self):
         """Creates tables appliance, customer, sales, money, and sold_appl"""
 ##        self.cur.execute("""CREATE EXTENSION pgrouting;""")
-##        self.cur.execute("""ALTER TABLE stephens_rd DROP COLUMN source;""")
-##        self.cur.execute("""ALTER TABLE public.stephens_rd add column source integer;""")
-##        self.cur.execute("""ALTER TABLE public.stephens_rd add column target integer;""")
-##        self.cur.execute("""SELECT pgr_createTopology('public.stephens_rd', 0.0001, 'geom', 'id');""")
+##        self.cur.execute("""ALTER TABLE scrouting DROP COLUMN source;""")
+##        self.cur.execute("""ALTER TABLE scrouting add column source integer;""")
+##        self.cur.execute("""ALTER TABLE scrouting add column target integer;""")
+##        self.cur.execute("""select pgr_createTopology('network.publictransport', 0.0005, 'geom', 'id');""")
+
+         self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
+                             FROM pgr_dijkstra(
+                             'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
+                             1, 500, false, false
+                             ) as di
+                             JOIN public.scrouting pt
+                             ON di.id2 = pt.id""")
 
 
         self.cur.execute("""CREATE TABLE appliance(id serial,
