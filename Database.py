@@ -9,8 +9,8 @@ import psycopg2
 class DBConnect():
     """Creates a database connection and a cursor"""
     def __init__(self):
-        self.conn = psycopg2.connect("""dbname=DbProject user=postgres
-                                        host=localhost password=postgres""")
+        self.conn = psycopg2.connect("""dbname=walker user=walker
+                                        host=168.30.240.96 password=900318939""")
         self.cur = self.conn.cursor()
         self.conn.commit()
         print("Connected")
@@ -90,8 +90,6 @@ class DBOperations(DBConnect):
         self.conn.commit()
         self.cur.execute("""SELECT MAX(id) FROM sales;""")
         ID = self.cur.fetchone()
-
-
         self.cur.execute("""SELECT * FROM money
                             WHERE date = current_date;""")
         date = self.cur.fetchone()
@@ -114,7 +112,7 @@ class DBOperations(DBConnect):
         for app_id in app:
             self.cur.execute("""SELECT app_type, price
                                 FROM appliance
-                                WHERE id = (%s);""",(app_id))
+                                WHERE id = (%s);""",(app_id,))
             y = self.cur.fetchone()
             app_type = y[0]
             price = y[1]
@@ -169,6 +167,13 @@ class DBOperations(DBConnect):
         self.cur.execute("""UPDATE money SET total = %s
                             WHERE date = current_date;""", (grand_total,))
         self.conn.commit()
+        self.cur.execute("""UPDATE sales SET delivery_date = current_date
+                            WHERE id = %s""", (ID2,))
+        self.conn.commit()
+
+        self.cur.execute("""UPDATE sales SET war_exp = current_date + 365
+                            WHERE id = %s""", (ID2,))
+        self.conn.commit()
         
 
     def serviceCalls(self, app_id):
@@ -181,10 +186,11 @@ class DBOperations(DBConnect):
         self.conn.commit()
 
     def viewService(self):
-        self.cur.execute("""SELECT * FROM service_calls;""")
+        self.cur.execute("""SELECT * FROM service_calls NATURAL JOIN sales NATURAL JOIN customer;""")
         results = self.cur.fetchall()
-        for a,b,c,d,e in results:
-            print b,c,d,e
+        print("SaleID|APPLID|Action|WARexp|Name|Phone|Address")
+        for a,b,c,d,e,f,g,h,i,j,k in results:
+            print c,d,e,h,i,j,k
 
     def viewRoute(self):
         """http://anitagraser.com/2013/07/06/pgrouting-2-0-for-windows-quick-guide/"""
@@ -206,13 +212,13 @@ class DBOperations(DBConnect):
 ##        self.cur.execute("""ALTER TABLE scrouting add column target integer;""")
 ##        self.cur.execute("""select pgr_createTopology('network.publictransport', 0.0005, 'geom', 'id');""")
 
-         self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
-                             FROM pgr_dijkstra(
-                             'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
-                             1, 500, false, false
-                             ) as di
-                             JOIN public.scrouting pt
-                             ON di.id2 = pt.id""")
+        # self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
+        #                      FROM pgr_dijkstra(
+        #                      'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
+        #                      1, 500, false, false
+        #                      ) as di
+        #                      JOIN public.scrouting pt
+        #                      ON di.id2 = pt.id""")
 
 
         self.cur.execute("""CREATE TABLE appliance(id serial,
@@ -228,7 +234,7 @@ class DBOperations(DBConnect):
         
         self.cur.execute("""CREATE TABLE customer(id serial,
                                                   name varchar(20),
-                                                  phone integer,
+                                                  phone bigint,
                                                   address varchar
                                                   );"""
                          )
