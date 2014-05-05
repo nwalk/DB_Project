@@ -24,9 +24,9 @@ class DBOperations(DBConnect):
         self.cur.execute("""SELECT * FROM appliance
                             WHERE status = 'available';""")
         x = self.cur.fetchall()
-        print("Type |Brand |Style |Price")
+        print("ID |Type |Brand |Style |Price")
         for a,b,c,d,e,f,g in x:
-            print c,d,e,f
+            print a,c,d,e,f
 
 
     def addAppliance(self, a, b, s, p, r):
