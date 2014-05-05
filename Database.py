@@ -79,7 +79,8 @@ class DBOperations(DBConnect):
             DBOperations().saleTicket2(n, p, a, app)
         else:
             DBOperations().saleTicket2(n, p, a, app)
-        
+
+                    
     def saleTicket2(self, n, p, a, app=''):
         self.cur.execute("""SELECT id FROM customer
                             WHERE name = (%s)
@@ -169,6 +170,8 @@ class DBOperations(DBConnect):
         self.cur.execute("""UPDATE money SET total = %s
                             WHERE date = current_date;""", (grand_total,))
         self.conn.commit()
+
+        DBOperations().viewRout(a)
         
 
     def serviceCalls(self, app_id):
@@ -186,15 +189,26 @@ class DBOperations(DBConnect):
         for a,b,c,d,e in results:
             print b,c,d,e
 
-    def viewRoute(self):
+    def viewRoute(self, a):
         """http://anitagraser.com/2013/07/06/pgrouting-2-0-for-windows-quick-guide/"""
+        import geopy
+        from geopy import geocoders
+
+        g = geocoders.GoogleV3()
+        place, (lat, lng) = g.geocode("Walmart, Toccoa, ga")
+        print place, (lat, lng)
+
+
+        
+        destination = self.cur.fetchone()
+
         self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
                              FROM pgr_dijkstra(
                              'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
-                             1, 500, false, false
+                             574, (%s), false, false
                              ) as di
                              JOIN public.scrouting pt
-                             ON di.id2 = pt.id""")
+                             ON di.id2 = pt.id""", (destination,))
 
 
         
