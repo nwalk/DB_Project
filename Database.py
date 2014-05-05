@@ -4,13 +4,13 @@ Nathan Walker
 nwalk19@gmail.com
 """
 
-import psycopg2
+import psycopg2, geopy
 
 class DBConnect():
     """Creates a database connection and a cursor"""
     def __init__(self):
-        self.conn = psycopg2.connect("""dbname=DbProject user=postgres
-                                        host=localhost password=postgres""")
+        self.conn = psycopg2.connect("""dbname=walker user=walker
+                                        host=168.30.240.96 password=900318939""")
         self.cur = self.conn.cursor()
         self.conn.commit()
         print("Connected")
@@ -24,9 +24,9 @@ class DBOperations(DBConnect):
         self.cur.execute("""SELECT * FROM appliance
                             WHERE status = 'available';""")
         x = self.cur.fetchall()
-        print("Type |Brand |Style |Price")
+        print("ID |Type |Brand |Style |Price")
         for a,b,c,d,e,f,g in x:
-            print c,d,e,f
+            print a,c,d,e,f
 
 
     def addAppliance(self, a, b, s, p, r):
@@ -114,7 +114,7 @@ class DBOperations(DBConnect):
         for app_id in app:
             self.cur.execute("""SELECT app_type, price
                                 FROM appliance
-                                WHERE id = (%s);""",(app_id))
+                                WHERE id = (%s);""", (app_id,))
             y = self.cur.fetchone()
             app_type = y[0]
             price = y[1]
@@ -169,7 +169,13 @@ class DBOperations(DBConnect):
         self.cur.execute("""UPDATE money SET total = %s
                             WHERE date = current_date;""", (grand_total,))
         self.conn.commit()
-        
+
+        self.cur.execute("""UPDATE sales SET delivery_date = current_date
+                            WHERE id = %s""", (ID2,))
+        self.conn.commit()
+        self.cur.execute("""UPDATE sales SET war_exp = current_date + 365
+                            WHERE id = %s""", (ID2,))
+        self.conn.commit()
 
     def serviceCalls(self, app_id):
         self.cur.execute("""SELECT sale_id FROM sold_appl NATURAL JOIN appliance
@@ -181,10 +187,11 @@ class DBOperations(DBConnect):
         self.conn.commit()
 
     def viewService(self):
-        self.cur.execute("""SELECT * FROM service_calls;""")
+        self.cur.execute("""SELECT * FROM service_calls NATURAL JOIN sales NATURAL JOIN customer;""")
         results = self.cur.fetchall()
-        for a,b,c,d,e in results:
-            print b,c,d,e
+        print("Sale|ApID|Action|ExpDate|Name|Phone|Address")
+        for a,b,c,d,e,f,g,h,i,j,k in results:
+            print c,',',d,',',e,',',g,',',i,',',j,',',k
 
     def viewRoute(self):
         """http://anitagraser.com/2013/07/06/pgrouting-2-0-for-windows-quick-guide/"""
@@ -201,19 +208,18 @@ class DBOperations(DBConnect):
     def createTable(self):
         """Creates tables appliance, customer, sales, money, and sold_appl"""
 ##        self.cur.execute("""CREATE EXTENSION pgrouting;""")
-##        self.cur.execute("""ALTER TABLE scrouting DROP COLUMN source;""")
-##        self.cur.execute("""ALTER TABLE scrouting add column source integer;""")
-##        self.cur.execute("""ALTER TABLE scrouting add column target integer;""")
-##        self.cur.execute("""select pgr_createTopology('network.publictransport', 0.0005, 'geom', 'id');""")
+##        self.cur.execute("""ALTER TABLE sc_roads DROP COLUMN source;""")
+##        self.cur.execute("""ALTER TABLE sc_roads add column source integer;""")
+##        self.cur.execute("""ALTER TABLE sc_roads add column target integer;""")
+##        self.cur.execute("""SELECT pgr_createTopology('sc_roads', 0.0005, 'geom', 'id');""")
 
-         self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
-                             FROM pgr_dijkstra(
-                             'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
-                             1, 500, false, false
-                             ) as di
-                             JOIN public.scrouting pt
-                             ON di.id2 = pt.id""")
-
+        # self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
+        #                      FROM pgr_dijkstra(
+        #                      'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
+        #                      1, 500, false, false
+        #                      ) as di
+        #                      JOIN public.scrouting pt
+        #                      ON di.id2 = pt.id""")
 
         self.cur.execute("""CREATE TABLE appliance(id serial,
                                                    status varchar,
@@ -228,7 +234,7 @@ class DBOperations(DBConnect):
         
         self.cur.execute("""CREATE TABLE customer(id serial,
                                                   name varchar(20),
-                                                  phone integer,
+                                                  phone bigint,
                                                   address varchar
                                                   );"""
                          )
@@ -279,10 +285,11 @@ class DBOperations(DBConnect):
 
     def dropTables(self):
         """Drops tables; appliance, customer, sales, and sold_appl"""
-        self.cur.execute("""DROP TABLE appliance;""")
+        # self.cur.execute("""DROP TABLE appliance;""")
         self.cur.execute("""DROP TABLE customer;""")
         self.cur.execute("""DROP TABLE sales;""")
         self.cur.execute("""DROP TABLE sold_appl;""")
+        self.cur.execute("""DROP TABLE service_calls;""")
         self.cur.execute("""DROP TABLE money;""")
         self.conn.commit()
         print("Tables Dropped")

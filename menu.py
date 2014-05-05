@@ -1,4 +1,4 @@
-from database import DBOperations
+from Database import DBOperations
 import re
 
 class Menu():
