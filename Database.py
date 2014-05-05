@@ -223,7 +223,7 @@ class DBOperations(DBConnect):
          self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
                              FROM pgr_dijkstra(
                              'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
-                             1, 500, false, false
+                             574, 500, false, false
                              ) as di
                              JOIN public.scrouting pt
                              ON di.id2 = pt.id""")
