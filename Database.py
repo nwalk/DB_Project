@@ -9,8 +9,8 @@ import psycopg2
 class DBConnect():
     """Creates a database connection and a cursor"""
     def __init__(self):
-        self.conn = psycopg2.connect("""dbname=DbProject user=postgres
-                                        host=localhost password=postgres""")
+        self.conn = psycopg2.connect("""dbname=walker user=walker
+                                        host=168.30.240.96 password=900318939""")
         self.cur = self.conn.cursor()
         self.conn.commit()
         print("Connected")
@@ -19,9 +19,21 @@ class DBOperations(DBConnect):
     """This class performs all the operations
        needed to work with the database"""
 
-    def addAppliance(self, a, b, m, p):
-        self.cur.execute("""INSERT INTO appliance (app_type, brand, model, price)
-                            VALUES (%s, %s, %s, %s);""", (a, b, m, p,))
+    def viewAvailable(self):
+        """Selects all available appliances from appliance table"""
+        self.cur.execute("""SELECT * FROM appliance
+                            WHERE status = 'available';""")
+        x = self.cur.fetchall()
+        print("ID |Type |Brand |Style |Price")
+        for a,b,c,d,e,f,g in x:
+            print a,c,d,e,f
+
+
+    def addAppliance(self, a, b, s, p, r):
+        self.cur.execute("""INSERT INTO appliance (status, app_type, brand,
+                                                   style, price, repairs)
+                            VALUES ('available', %s, %s, %s, %s, %s);""",
+                            (a, b, s, p, r,))
         self.conn.commit()
         self.cur.execute("""SELECT MAX(id) FROM appliance;""")
         x = self.cur.fetchone()
@@ -39,10 +51,14 @@ class DBOperations(DBConnect):
         for a,b,c,d in x:
             print a,b,c,d
         cust_id = raw_input("Please enter customer ID:")
-        self.cur.execute("""SELECT * FROM sold_appl NATURAL JOIN appliance
+        self.cur.execute("""SELECT date, app_type, brand, style, price
+                            FROM sold_appl NATURAL JOIN appliance
                             WHERE cust_id = (%s);""", (cust_id,))
-        purchase = self.cur.fetchall()
-        print purchase
+        List = self.cur.fetchall()
+        for tuple in List:
+            print ("\n")
+            for i in tuple:
+                print i             
         
     def searchPhone(self, p):
         self.cur.execute("""SELECT * FROM customer
@@ -74,8 +90,6 @@ class DBOperations(DBConnect):
         self.conn.commit()
         self.cur.execute("""SELECT MAX(id) FROM sales;""")
         ID = self.cur.fetchone()
-
-
         self.cur.execute("""SELECT * FROM money
                             WHERE date = current_date;""")
         date = self.cur.fetchone()
@@ -98,7 +112,7 @@ class DBOperations(DBConnect):
         for app_id in app:
             self.cur.execute("""SELECT app_type, price
                                 FROM appliance
-                                WHERE id = (%s);""",(app_id))
+                                WHERE id = (%s);""",(app_id,))
             y = self.cur.fetchone()
             app_type = y[0]
             price = y[1]
@@ -129,6 +143,9 @@ class DBOperations(DBConnect):
                                     VALUES (%s, %s, %s, current_date);""",
                                 (ID, x, app_id,))
                 self.conn.commit()
+                self.cur.execute("""UPDATE appliance SET status = 'sold'
+                                    WHERE id = %s;""", (app_id,))
+                self.conn.commit()
         self.cur.execute("""SELECT washer,
                                    dryer,
                                    refrigerator,
@@ -150,29 +167,74 @@ class DBOperations(DBConnect):
         self.cur.execute("""UPDATE money SET total = %s
                             WHERE date = current_date;""", (grand_total,))
         self.conn.commit()
+        self.cur.execute("""UPDATE sales SET delivery_date = current_date
+                            WHERE id = %s""", (ID2,))
+        self.conn.commit()
+
+        self.cur.execute("""UPDATE sales SET war_exp = current_date + 365
+                            WHERE id = %s""", (ID2,))
+        self.conn.commit()
+        
+
+    def serviceCalls(self, app_id):
+        self.cur.execute("""SELECT sale_id FROM sold_appl NATURAL JOIN appliance
+                            WHERE appl_id = (%s);""", (app_id,))
+        sale_id = self.cur.fetchone()
+        service = raw_input("Repaires made:")
+        self.cur.execute("""INSERT INTO service_calls(sale_id, appl_id, repair, date)
+                            VALUES(%s, %s, %s, current_date);""", (sale_id, app_id, service,))
+        self.conn.commit()
+
+    def viewService(self):
+        self.cur.execute("""SELECT * FROM service_calls NATURAL JOIN sales NATURAL JOIN customer;""")
+        results = self.cur.fetchall()
+        print("SaleID|APPLID|Action|WARexp|Name|Phone|Address")
+        for a,b,c,d,e,f,g,h,i,j,k in results:
+            print c,d,e,h,i,j,k
+
+    def viewRoute(self):
+        """http://anitagraser.com/2013/07/06/pgrouting-2-0-for-windows-quick-guide/"""
+        self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
+                             FROM pgr_dijkstra(
+                             'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
+                             1, 500, false, false
+                             ) as di
+                             JOIN public.scrouting pt
+                             ON di.id2 = pt.id""")
+
 
         
     def createTable(self):
         """Creates tables appliance, customer, sales, money, and sold_appl"""
 ##        self.cur.execute("""CREATE EXTENSION pgrouting;""")
-##        self.cur.execute("""ALTER TABLE stephens_rd DROP COLUMN source;""")
-##        self.cur.execute("""ALTER TABLE public.stephens_rd add column source integer;""")
-##        self.cur.execute("""ALTER TABLE public.stephens_rd add column target integer;""")
-##        self.cur.execute("""SELECT pgr_createTopology('public.stephens_rd', 0.0001, 'geom', 'id');""")
+##        self.cur.execute("""ALTER TABLE scrouting DROP COLUMN source;""")
+##        self.cur.execute("""ALTER TABLE scrouting add column source integer;""")
+##        self.cur.execute("""ALTER TABLE scrouting add column target integer;""")
+##        self.cur.execute("""select pgr_createTopology('network.publictransport', 0.0005, 'geom', 'id');""")
+
+        # self.cur.execute("""SELECT seq, id1 AS node, id2 AS edge, cost, geom INTO newtable
+        #                      FROM pgr_dijkstra(
+        #                      'SELECT id, source, target, st_length(geom) as cost FROM public.scrouting',
+        #                      1, 500, false, false
+        #                      ) as di
+        #                      JOIN public.scrouting pt
+        #                      ON di.id2 = pt.id""")
 
 
         self.cur.execute("""CREATE TABLE appliance(id serial,
+                                                   status varchar,
                                                    app_type varchar,
                                                    brand varchar,
-                                                   model varchar,
-                                                   price float
+                                                   style varchar,
+                                                   price float,
+                                                   repairs varchar
                                                    );"""
                          )
         self.conn.commit()
         
         self.cur.execute("""CREATE TABLE customer(id serial,
                                                   name varchar(20),
-                                                  phone integer,
+                                                  phone bigint,
                                                   address varchar
                                                   );"""
                          )
@@ -182,7 +244,7 @@ class DBOperations(DBConnect):
                                                cust_id integer,
                                                date date,
                                                delivery_date date,
-                                               war_exp date                                          
+                                               war_exp date
                                                );"""
                          )
         self.conn.commit()
@@ -194,6 +256,16 @@ class DBOperations(DBConnect):
                                                    );"""
                          )
         self.conn.commit()
+
+        self.cur.execute("""CREATE TABLE service_calls(id serial,
+                                                       sale_id integer,
+                                                       appl_id integer,
+                                                       repair varchar,
+                                                       date date
+                                                       );"""
+                         )
+        self.conn.commit()
+        
         self.cur.execute("""CREATE TABLE money(washer float,
                                                dryer float,
                                                refrigerator float,

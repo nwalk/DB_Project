@@ -1,4 +1,4 @@
-from database import DBOperations
+from Database import DBOperations
 import re
 
 class Menu():
@@ -10,10 +10,10 @@ class Menu():
                 2: self.drop,
                 3: self.add_a,
                 4: self.sale,
-                5: self.search
-##                6: self.,
-##                7: self.,
-##                8: self.quit,
+                5: self.search,
+                6: self.available,
+                7: self.service,
+                8: self.view_serv
                 }
 
     def display_menu(self):
@@ -21,9 +21,9 @@ class Menu():
 Used Appliance:
                    MAIN MENU
 
-1 - Add Table
-2 - Drop Tables
-3 - Add Appliance
+1 - Add Table      6 - View Available
+2 - Drop Tables    7 - Service Calls
+3 - Add Appliance  8 - View Service Calls
 4 - Sale
 5 - Search
 """)
@@ -39,18 +39,25 @@ Used Appliance:
             else:
                 print("{} is not a valid choice".format(choice))
 
+    def available(self):
+        self.DB.viewAvailable()
+
     def create(self):
         self.DB.createTable()
 
     def drop(self):
         self.DB.dropTables()
 
+    def view_serv(self):
+        self.DB.viewService()
+
     def add_a(self):
         a = raw_input("Appliance Type:")
         b = raw_input("Brand:")
-        m = raw_input("Model:")
+        s = raw_input("Style:")
         p = float(raw_input("Price:"))
-        self.DB.addAppliance(a, b, m, p)
+        r = raw_input("Repairs made:")
+        self.DB.addAppliance(a, b, s, p, r)
 
     def sale(self):
         n = raw_input("Name:")
@@ -60,6 +67,13 @@ Used Appliance:
         app = re.findall(r"[-+]?\d*\.\d+|\d+", app)
         print app
         self.DB.saleTicket1(n, p, a, app)
+
+    def service(self):
+        app_id = raw_input("Appliance ID:")
+        self.DB.serviceCalls(app_id)
+        
+        
+        
         
     def search(self):
         print("""
