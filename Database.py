@@ -9,8 +9,8 @@ import psycopg2
 class DBConnect():
     """Creates a database connection and a cursor"""
     def __init__(self):
-        self.conn = psycopg2.connect("""dbname=walker user=walker
-                                        host=168.30.240.96 password=900318939""")
+        self.conn = psycopg2.connect("""dbname=DbProject user=postgres
+                                        host=localhost password=postgres""")
         self.cur = self.conn.cursor()
         self.conn.commit()
         print("Connected")
@@ -76,11 +76,11 @@ class DBOperations(DBConnect):
             self.cur.execute("""INSERT INTO customer (name, phone, address)
                             VALUES (%s, %s, %s);""", (n, p, a,))
             self.conn.commit()
-            DBOperations().saleTicket2(n, p, a, app)
+            DBOperations().saleTicket2(n, p, app)
         else:
-            DBOperations().saleTicket2(n, p, a, app)
+            DBOperations().saleTicket2(n, p, app)
         
-    def saleTicket2(self, n, p, a, app=''):
+    def saleTicket2(self, n, p, app='', tax=0):
         self.cur.execute("""SELECT id FROM customer
                             WHERE name = (%s)
                             AND phone = (%s);""", (n, p,))
@@ -90,6 +90,7 @@ class DBOperations(DBConnect):
         self.conn.commit()
         self.cur.execute("""SELECT MAX(id) FROM sales;""")
         ID = self.cur.fetchone()
+        ID = ID[0]
         self.cur.execute("""SELECT * FROM money
                             WHERE date = current_date;""")
         date = self.cur.fetchone()
@@ -110,17 +111,16 @@ class DBOperations(DBConnect):
                                        );""")
             self.conn.commit()
         for app_id in app:
-            self.cur.execute("""SELECT app_type, price
+            self.cur.execute("""SELECT app_type
                                 FROM appliance
                                 WHERE id = (%s);""",(app_id,))
             y = self.cur.fetchone()
             app_type = y[0]
-            price = y[1]
-            ID2 = ID[0]
+            price = float(raw_input("Enter amount recieved for {} ID = {}:".format(app_type, app_id)))
             self.cur.execute("""SELECT {} FROM money
                                 WHERE date = current_date;""".format(app_type))
-            instance = self.cur.fetchone()
-            number = instance[0]
+            selection = self.cur.fetchone()
+            number = selection[0]
             if number == 0.0:
                 self.cur.execute("""UPDATE money
                                     SET {} = {}::float
@@ -159,20 +159,21 @@ class DBOperations(DBConnect):
         tpl = self.cur.fetchall()
         tpl = tpl[0]
         total = sum(tpl)
-        tax = total * 0.07
-        grand_total = total + tax
+##        tax = total * 0.07
+##        grand_total = total + tax
+        # pull this from sales:
         self.cur.execute("""UPDATE money SET tax = %s
                             WHERE date = current_date;""", (tax,))
         self.conn.commit()
         self.cur.execute("""UPDATE money SET total = %s
-                            WHERE date = current_date;""", (grand_total,))
+                            WHERE date = current_date;""", (total,))
         self.conn.commit()
         self.cur.execute("""UPDATE sales SET delivery_date = current_date
-                            WHERE id = %s""", (ID2,))
+                            WHERE id = %s""", (ID,))
         self.conn.commit()
 
         self.cur.execute("""UPDATE sales SET war_exp = current_date + 365
-                            WHERE id = %s""", (ID2,))
+                            WHERE id = %s""", (ID,))
         self.conn.commit()
         
 
@@ -239,9 +240,11 @@ class DBOperations(DBConnect):
                                                   );"""
                          )
         self.conn.commit()
-
+        # need total/tax and total+tax column of recieved per sale
         self.cur.execute("""CREATE TABLE sales(id serial,
                                                cust_id integer,
+                                               total float,
+                                               tax float,
                                                date date,
                                                delivery_date date,
                                                war_exp date
