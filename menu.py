@@ -53,10 +53,14 @@ Used Appliance:
 
     def add_a(self):
         a = raw_input("Appliance Type:")
+        a = a.lower()
         b = raw_input("Brand:")
+        b = b.lower()
         s = raw_input("Style:")
+        s = s.lower()
         p = float(raw_input("Price:"))
         r = raw_input("Repairs made:")
+        r = r.lower()
         self.DB.addAppliance(a, b, s, p, r)
 
     def sale(self):
@@ -65,7 +69,8 @@ Used Appliance:
         a = raw_input("Address:")
         app = raw_input("Appliance ID(s):")
         app = re.findall(r"[-+]?\d*\.\d+|\d+", app)
-        print app
+        n = n.lower()
+        a = a.lower()
         self.DB.saleTicket1(n, p, a, app)
 
     def service(self):
@@ -85,6 +90,7 @@ b - Back
         x = raw_input("Make a selection:")
         if x == '1':
             n = raw_input("Name:")
+            n = n.lower()
             self.DB.searchName(n)
         elif x == '2':
             p = raw_input("Phone Number:")
